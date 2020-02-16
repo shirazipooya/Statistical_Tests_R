@@ -30,7 +30,7 @@ data = read.csv(file = "../data/Data_Test_01.csv", header = TRUE)
 psych::headTail(x = data, top = 2, bottom = 2)
 ```
 
-```{r Step_2, ffig.width=8, fig.height=4, dpi=600}
+```{r Step_2, fig.width=8, fig.height=7, dpi=600}
 # visualizing sample data:
 
 # normality plot
