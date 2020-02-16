@@ -1,0 +1,134 @@
+---
+title: "Test 3: Z-test for Two Population Means (Variances Known and Unequal)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "BSDA")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_03.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_Sirvan, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data:
+Sirvan = data %>% filter(Cultivar == "Sirvan") %>% select(Yield) %>% unlist()
+
+# normality plot
+nPlotSirvan = ggpubr::ggqqplot(data = Sirvan, ylab = "Yield (kg/ha)")
+
+# histogram plot
+hPlotSirvan = ggpubr::gghistogram(data = Sirvan, binwidth = 500, add = "mean", 
+                                  fill = "gray", xlab = "Yield (kg/ha)",
+                                  add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlotSirvan = ggpubr::ggboxplot(data = Sirvan, add = c("mean"), fill = "gray",
+                                width = 0.5, xlab = "Sirvan", ylab = "Yield (kg/ha)",
+                                orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotSirvan, nPlotSirvan, nrow = 1, ncol = 2),
+                  bPlotSirvan, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+```{r Step_2_Pishgam, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data:
+Pishgam = data %>% filter(Cultivar == "Pishgam") %>% select(Yield) %>% unlist()
+
+# normality plot
+nPlotPishgam = ggpubr::ggqqplot(data = Pishgam, ylab = "Yield (kg/ha)")
+
+# histogram plot
+hPlotPishgam = ggpubr::gghistogram(data = Pishgam, binwidth = 500, add = "mean",
+                                   fill = "gray", xlab = "Yield (kg/ha)",
+                                   add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlotPishgam = ggpubr::ggboxplot(data = Pishgam, add = c("mean"), fill = "gray",
+                                 width = 0.5, xlab = "Pishgam", ylab = "Yield (kg/ha)",
+                                 orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotPishgam, nPlotPishgam, nrow = 1, ncol = 2),
+                  bPlotPishgam, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values: population
+sd.p.Sirvan = 694.50 # Sirvan
+sd.p.Pishgam = 864.36 # Pishgam
+
+# setting initial parameter values: sample
+sample.Sirvan = data %>% filter(Cultivar == "Sirvan") %>% select(Yield) %>% unlist()
+n.Sirvan = length(x = sample.Sirvan)
+mean.Sirvan = mean(x = sample.Sirvan)
+
+sample.Pishgam = data %>% filter(Cultivar == "Pishgam") %>% select(Yield) %>% unlist()
+n.Pishgam = length(x = sample.Pishgam)
+mean.Pishgam = mean(x = sample.Pishgam)
+
+# test statistic
+Z = (mean.Sirvan - mean.Pishgam) / (sqrt(((sd.p.Sirvan ^ 2)/n.Sirvan) + ((sd.p.Pishgam ^ 2)/n.Pishgam)))
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qnorm(p = (1 - alpha), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - alpha), lower.tail = TRUE)
+} else {
+  lower.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = TRUE)
+}
+
+p_value = pnorm(q = Z, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", Z, "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "norm", statistic = Z, alpha = 0.05,
+             alternative = "two.sided")
+
+# method 2
+# setting initial parameter values: population
+sd.p.Sirvan = 694.50 # Sirvan
+sd.p.Pishgam = 864.36 # Pishgam
+
+# setting initial parameter values: sample
+sample.Sirvan = data %>% filter(Cultivar == "Sirvan") %>% select(Yield) %>% unlist()
+sample.Pishgam = data %>% filter(Cultivar == "Pishgam") %>% select(Yield) %>% unlist()
+
+# use "z.test" function from "BSDA" package
+BSDA::z.test(x = sample.Sirvan, y = sample.Pishgam, alternative = "two.sided", mu = 0,
+             sigma.x = sd.p.Sirvan, sigma.y = sd.p.Pishgam, conf.level = 0.95)
+
+BSDA::z.test(x = sample.Sirvan, y = sample.Pishgam, alternative = "greater", mu = 0,
+             sigma.x = sd.p.Sirvan, sigma.y = sd.p.Pishgam, conf.level = 0.95)
+```
