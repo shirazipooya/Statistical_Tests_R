@@ -1,0 +1,133 @@
+---
+title: "Test 2: Z-test for Two Population Means (Variances Known and Equal)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("dplyr", "psych", "pacman", "ggpubr", "DescTools", "miscor")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_02.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_A, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data:
+A = data %>% filter(Tape == "A") %>% select(Yield) %>% unlist()
+
+# normality plot
+nPlotA = ggpubr::ggqqplot(data = A, ylab = "Yield (kg/ha)")
+
+# histogram plot
+hPlotA = ggpubr::gghistogram(data = A, binwidth = 500, add = "mean", 
+                             fill = "gray", xlab = "Yield (kg/ha)",
+                             add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlotA = ggpubr::ggboxplot(data = A, add = c("mean"), fill = "gray",
+                           width = 0.5, xlab = "Tape A", ylab = "Yield (kg/ha)",
+                           orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotA, nPlotA, nrow = 1, ncol = 2),
+                  bPlotA, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_B, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data:
+B = data %>% filter(Tape == "B") %>% select(Yield) %>% unlist()
+
+# normality plot
+nPlotB = ggpubr::ggqqplot(data = B, ylab = "Yield (kg/ha)")
+
+# histogram plot
+hPlotB = ggpubr::gghistogram(data = B, binwidth = 500, add = "mean", 
+                             fill = "gray", xlab = "Yield (kg/ha)",
+                             add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlotB = ggpubr::ggboxplot(data = B, add = c("mean"), fill = "gray",
+                           width = 0.5, xlab = "Tape B", ylab = "Yield (kg/ha)",
+                           orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotB, nPlotB, nrow = 1, ncol = 2),
+                  bPlotB, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values: population
+sd.p = 616.074
+
+# setting initial parameter values: sample
+sample.A = data %>% filter(Tape == "A") %>% select(Yield) %>% unlist()
+n.A = length(x = sample.A)
+mean.A = mean(x = sample.A)
+
+sample.B = data %>% filter(Tape == "B") %>% select(Yield) %>% unlist()
+n.B = length(x = sample.B)
+mean.B = mean(x = sample.B)
+
+# test statistic
+Z = (mean.A - mean.B) / (sd.p * sqrt((1/n.A) + (1/n.B)))
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qnorm(p = (1 - alpha), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - alpha), lower.tail = TRUE)
+} else {
+  lower.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = TRUE)
+}
+
+p_value = pnorm(q = Z, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", Z, "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "norm", statistic = Z, alpha = 0.05,
+             alternative = "two.sided")
+
+# method 2
+# setting initial parameter values: population
+sd.p = 616.074
+
+# setting initial parameter values: sample
+sample.A = data %>% filter(Tape == "A") %>% select(Yield) %>% unlist()
+sample.B = data %>% filter(Tape == "B") %>% select(Yield) %>% unlist()
+
+# use "ZTest" function from "DescTools" package
+DescTools::ZTest(x = sample.A, y = sample.B, alternative = "two.sided",
+                 mu = 0, sd_pop = sd.p, conf.level = 0.95)
+
+DescTools::ZTest(x = sample.A, y = sample.B, alternative = "greater",
+                 mu = 0, sd_pop = sd.p, conf.level = 0.95)
+```
