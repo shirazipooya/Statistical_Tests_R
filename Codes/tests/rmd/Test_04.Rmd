@@ -1,0 +1,78 @@
+---
+title: "Test 4: Z-test for a Proportion (Binomial Distribution)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+P0 = 0.9
+
+x = 82
+n = 100
+P = x / n
+
+# test statistic
+Z = (P - P0) / sqrt((P0 * (1 - P0)) / n)
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qnorm(p = (1 - alpha), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - alpha), lower.tail = TRUE)
+} else {
+  lower.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = TRUE)
+}
+
+p_value = pnorm(q = Z, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", Z, "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "norm", statistic = Z, alpha = 0.05,
+             alternative = "two.sided")
+
+# method 2
+# setting initial parameter values
+P0 = 0.9
+
+x = 82
+n = 100
+
+# use "prop.test" function from "stats" package
+prop.test(x = x, n = n, p = P0, alternative = "two.sided", 
+          conf.level = 0.95, correct = FALSE)
+```
