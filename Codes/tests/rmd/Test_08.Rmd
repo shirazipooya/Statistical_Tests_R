@@ -1,0 +1,152 @@
+---
+title: "Test 8: t-test for Two Population Means (Variances Unknown but Equal))"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "HH", "car")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_08.csv", header = TRUE)
+
+# show data:
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1 , fig.width=8, fig.height=4, dpi=600}
+# variances unknown but equal:
+# use "leveneTest" function from "car" package
+car::leveneTest(y = data$CU ~ data$Sprinkler)
+
+# homogeneity of variance plot
+# use "hovPlot" function from "HH" package
+HH::hovPlot(x = CU ~ Sprinkler, data = data)
+```
+
+```{r Step_2_2 , fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - ADF
+# prepare data
+ADF = data %>% filter(Sprinkler == "ADF")
+
+# histogram plot
+hPlotADF = ggpubr::gghistogram(data = ADF$CU, binwidth = 5, add = "mean", 
+                    fill = "gray", xlab = "Coefficient of Uniformity (%)",
+                    add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+nPlotADF = ggpubr::ggqqplot(data = ADF$CU,
+                            ylab = "Coefficient of Uniformity (%)")
+
+# box plot
+bPlotADF = ggpubr::ggboxplot(data = ADF, x = "Sprinkler", y = "CU", 
+                  add = c("mean"), fill = "gray", width = 0.5, 
+                  xlab = "", ylab = "Coefficient of Uniformity (%)",
+                  orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotADF, nPlotADF, nrow = 1, ncol = 2),
+                  bPlotADF, nrow = 2, ncol = 1, heights = c(4, 3))
+
+
+# visualizing sample data - Nelson
+# prepare data
+Nelson = data %>% filter(Sprinkler == "Nelson")
+
+# histogram plot
+hPlotNelson = ggpubr::gghistogram(data = Nelson$CU, binwidth = 5, add = "mean", 
+                    fill = "gray", xlab = "Coefficient of Uniformity (%)",
+                    add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+nPlotNelson = ggpubr::ggqqplot(data = Nelson$CU,
+                               ylab = "Coefficient of Uniformity (%)")
+
+# box plot
+bPlotNelson = ggpubr::ggboxplot(data = Nelson, x = "Sprinkler", y = "CU", 
+                  add = c("mean"), fill = "gray", width = 0.5, 
+                  xlab = "", ylab = "Coefficient of Uniformity (%)",
+                  orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotNelson, nPlotNelson, nrow = 1, ncol = 2),
+                  bPlotNelson, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+
+# prepare data
+ADF = data %>% filter(Sprinkler == "ADF") %>% dplyr::select(CU) %>% unlist()
+n.ADF = length(x = ADF)
+mean.ADF = mean(x = ADF)
+
+Nelson = data %>% filter(Sprinkler == "Nelson") %>% dplyr::select(CU) %>% unlist()
+n.Nelson = length(x = Nelson)
+mean.Nelson = mean(x = Nelson)
+
+# sums of squares
+sq.ADF = sum((ADF - mean.ADF) ^ 2)
+sq.Nelson = sum((Nelson - mean.Nelson) ^ 2)
+
+# population variance
+s = (sq.ADF + sq.Nelson) / (n.ADF + n.Nelson - 2)
+
+# test statistic
+t = (mean.ADF - mean.Nelson) / sqrt(s * ((1 / n.ADF) + (1 / n.Nelson)))
+
+# degrees of freedom
+df = n.ADF + n.Nelson - 2
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qt(p = (1 - alpha), df = df, lower.tail = FALSE)
+  upper.critical = qt(p = (1 - alpha), df = df, lower.tail = TRUE)
+} else {
+  lower.critical = qt(p = (1 - (alpha / 2)), df = df, lower.tail = FALSE)
+  upper.critical = qt(p = (1 - (alpha / 2)), df = df, lower.tail = TRUE)
+}
+
+p_value = pt(q = t, df = df, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", t, "\n")
+cat("Degrees of Freedom:", df, "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "t", statistic = t, df = df, alpha = 0.05,
+             alternative = "two.sided")
+
+# method 2
+# setting initial parameter values
+ADF = data %>% filter(Sprinkler == "ADF") %>% dplyr::select(CU) %>% unlist()
+Nelson = data %>% filter(Sprinkler == "Nelson") %>% dplyr::select(CU) %>% unlist()
+
+# use "t.test" function from "stats" package
+stats::t.test(x = ADF, y = Nelson, var.equal = TRUE,
+              alternative = "two.sided", conf.level = 0.95)
+```
