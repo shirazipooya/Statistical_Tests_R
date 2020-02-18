@@ -1,0 +1,114 @@
+---
+title: "Test 6: Z-test for Comparing Two Counts (Poisson Distribution)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_06.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_Kerman, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data
+Kerman = data %>% select(Kerman) %>% unlist()
+
+# normality plot
+nPlotKerman = ggpubr::ggqqplot(data = Kerman, ylab = "Day")
+
+# histogram plot
+hPlotKerman = ggpubr::gghistogram(data = Kerman, binwidth = 10, add = "mean", 
+                                  fill = "gray", xlab = "Day",
+                                  add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlotKerman = ggpubr::ggboxplot(data = Kerman, add = c("mean"), fill = "gray",
+                                width = 0.5, xlab = "Kerman", ylab = "Day",
+                                orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotKerman, nPlotKerman, nrow = 1, ncol = 2),
+                  bPlotKerman, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_Zahedan, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data
+Zahedan = data %>% select(Zahedan) %>% unlist()
+
+# normality plot
+nPlotZahedan = ggpubr::ggqqplot(data = Zahedan, ylab = "Day")
+
+# histogram plot
+hPlotZahedan = ggpubr::gghistogram(data = Zahedan, binwidth = 10, add = "mean", 
+                                  fill = "gray", xlab = "Day",
+                                  add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlotZahedan = ggpubr::ggboxplot(data = Zahedan, add = c("mean"), fill = "gray",
+                                width = 0.5, xlab = "Zahedan", ylab = "Day",
+                                orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotZahedan, nPlotZahedan, nrow = 1, ncol = 2),
+                  bPlotZahedan, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# setting initial parameter values
+n.Kerman = sum(Kerman)
+t.kerman = length(x = Kerman)
+R.Kerman = n.Kerman / t.kerman
+
+n.Zahedan = sum(Zahedan)
+t.Zahedan = length(x = Zahedan)
+R.Zahedan = n.Zahedan / t.Zahedan
+
+# test statistic
+Z = (R.Kerman - R.Zahedan) / sqrt((R.Kerman / t.kerman) + (R.Zahedan / t.Zahedan))
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qnorm(p = (1 - alpha), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - alpha), lower.tail = TRUE)
+} else {
+  lower.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = TRUE)
+}
+
+p_value = pnorm(q = Z, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", Z, "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "norm", statistic = Z, alpha = 0.05,
+             alternative = "two.sided")
+```
