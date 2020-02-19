@@ -1,2 +1,41 @@
 # Statistical Tests Using R
 This book explains the purpose of some of the most commonly used statistical tests and how to implement them in R.
+
+## TODO
+- [ ] Book Cover
+- [ ] Table of Content
+- [x] Test 01
+- [x] Test 02
+- [x] Test 03
+- [x] Test 04
+- [x] Test 05
+- [x] Test 06
+- [x] Test 07
+- [x] Test 08
+- [x] Test 09
+- [ ] Test 10
+- [ ] Test 11
+- [ ] Test 12
+- [ ] Test 13
+- [ ] Test 14
+- [ ] Test 15
+- [ ] Test 16
+- [ ] Test 17
+- [ ] Test 18
+- [ ] Test 19
+- [ ] Test 20
+- [ ] Test 21
+- [ ] Test 22
+- [ ] Test 23
+- [ ] Test 24
+- [ ] Test 25
+- [ ] Test 26
+- [ ] Test 27
+- [ ] Test 28
+- [ ] Test 29
+- [ ] Test 30
+- [ ] Tables
+- [ ] Base R
+- [ ] Reference
+- [ ] Index
+- [ ] Dictionary
