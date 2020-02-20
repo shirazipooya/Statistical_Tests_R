@@ -1,0 +1,159 @@
+---
+title: "Test 11: t-test of a Regression Coefficient"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "ggExtra", "jtools", "ggfortify")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_11.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1, fig.width=4, fig.height=4, dpi=600}
+# assumption checking:
+# 1. the variable y follows a normal distribution for each value of x.
+# use shapiro-wilk normality test
+shapiro.test(x = data$TDS)
+shapiro.test(x = data$U)
+```
+
+```{r Step_2_2, fig.width=8, fig.height=7, dpi=600}
+# visualizing sample data - TDS
+# prepare data
+x = data %>% select(TDS) %>% unlist()
+
+# histogram plot
+HistPlot.x = ggpubr::gghistogram(data = x, binwidth = 500, add = "mean", fill = "gray", 
+                                 xlab = "Total Dissolved Solids (mg/l)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.x = ggpubr::ggqqplot(data = x,
+                                ylab = "Total Dissolved Solids (mg/l)")
+
+# box plot
+BoxPlot.x = ggpubr::ggboxplot(data = x, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Total Dissolved Solids (mg/l)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.x, NormalPlot.x, nrow = 1, ncol = 2),
+                  BoxPlot.x, nrow = 2, ncol = 1, heights = c(4, 3))
+
+# visualizing sample data - U
+# prepare data
+y = data %>% select(U) %>% unlist()
+
+# histogram plot
+HistPlot.y = ggpubr::gghistogram(data = y, binwidth = 5, add = "mean", fill = "gray", 
+                                 xlab = "Uranium Concentrations (ug/l)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.y = ggpubr::ggqqplot(data = y,
+                                ylab = "Uranium Concentrations (ug/l)")
+
+# box plot
+BoxPlot.y = ggpubr::ggboxplot(data = y, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Uranium Concentrations (ug/l)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.y, NormalPlot.y, nrow = 1, ncol = 2),
+                  BoxPlot.y, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_3, fig.width=4, fig.height=4, dpi=600}
+# visualize data using scatter plots
+data %>% ggpubr::ggscatter(x = "TDS", y = "U",
+                           add = "reg.line", conf.int = TRUE,
+                           xlab = "Total Dissolved Solids (mg/l)",
+                           ylab = "Uranium Concentrations (ug/l)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+```{r Step_4_1, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data$TDS
+mean.x = mean(x = x)
+y = data$U
+mean.y = mean(x = y)
+n = nrow(x = data)
+
+# regression coefficient
+b.numerator = sum(x * y) - ((sum(x) * sum(y)) / n)
+b.denominator = sum(x ^ 2) - ((sum(x) ^ 2) / n)
+b = b.numerator / b.denominator
+
+var.x = sum((x - mean.x) ^ 2) / (n - 1)
+
+# variance of y
+var.y = sum((y - mean.y) ^ 2) / (n - 1)
+
+# variance of yx
+var.yx = ((n - 1) / (n - 2)) * (var.y - (var.x * (b ^ 2)))
+
+# test statistic
+t = sqrt(((b ^ 2) * var.x * (n - 1)) / (var.yx))
+
+# degrees of freedom
+df = n - 2
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qt(p = (1 - alpha), df = df, lower.tail = FALSE)
+  upper.critical = qt(p = (1 - alpha), df = df, lower.tail = TRUE)
+} else {
+  lower.critical = qt(p = (1 - (alpha / 2)), df = df, lower.tail = FALSE)
+  upper.critical = qt(p = (1 - (alpha / 2)), df = df, lower.tail = TRUE)
+}
+
+p_value = pt(q = t, df = df, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", t, "\n")
+cat("Degrees of Freedom:", df, "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "t", statistic = t, df = df, alpha = 0.05,
+             alternative = "two.sided")
+
+# method 2
+# use "lm" function from "stats" package
+mod = lm(formula = U ~ TDS, data = data)
+jtools::summ(model = mod)
+```
+
+
+```{r Step_4_2, fig.width=6, fig.height=6, dpi=600}
+ggplot2::autoplot(object = mod) + theme_classic()
+```
