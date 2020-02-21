@@ -1,0 +1,258 @@
+---
+title: "Test 14: Z-test for Two Correlation Coefficients"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "ggExtra",
+          "PerformanceAnalytics", "miscor", "cocor")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_14.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1_candy, fig.width=4, fig.height=4, dpi=600}
+# assumption checking:
+# 1. The x and y values originate from normal distributions
+# use shapiro-wilk normality test
+data_candy <- data %>% filter(Bean == "candy")
+shapiro.test(x = data_candy$Na)
+shapiro.test(x = data_candy$Burn)
+```
+
+```{r Step_2_2_candy, fig.width=4, fig.height=4, dpi=600}
+# 2. the relationship is linear
+PerformanceAnalytics::chart.Correlation(R = data_candy[, c("Na", "Burn")],
+                                        histogram = TRUE, method = "pearson")
+```
+haha
+
+```{r Step_2_3_candy, fig.width=4, fig.height=4, dpi=600}
+
+# 3. visualize data using scatter plots
+data_candy %>% ggpubr::ggscatter(x = "Na", y = "Burn",
+                                 add = "reg.line", conf.int = TRUE,
+                                 xlab = "Na (g/l)",
+                                 ylab = "Burn (%)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+haha
+```{r Step_2_4_candy, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - Na
+# prepare data
+x = data_candy %>% select(Na) %>% unlist()
+
+# histogram plot
+HistPlot.x = ggpubr::gghistogram(data = x, binwidth = 2, add = "mean", fill = "gray", 
+                                 xlab = "Na (g/l)", add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.x = ggpubr::ggqqplot(data = x,
+                                ylab = "Na (g/l)")
+
+# box plot
+BoxPlot.x = ggpubr::ggboxplot(data = x, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Na (g/l)", orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.x, NormalPlot.x, nrow = 1, ncol = 2),
+                  BoxPlot.x, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_5_candy, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - Burn
+# prepare data
+y = data_candy %>% select(Burn) %>% unlist()
+
+# histogram plot
+HistPlot.y = ggpubr::gghistogram(data = y, binwidth = 3, add = "mean", fill = "gray", 
+                                 xlab = "Burn (%)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.y = ggpubr::ggqqplot(data = y,
+                                ylab = "Burn (%)")
+
+# box plot
+BoxPlot.y = ggpubr::ggboxplot(data = y, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Burn (%)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.y, NormalPlot.y, nrow = 1, ncol = 2),
+                  BoxPlot.y, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_1_buffy, fig.width=4, fig.height=4, dpi=600}
+# assumption checking:
+# 1. The x and y values originate from normal distributions
+# use shapiro-wilk normality test
+data_buffy <- data %>% filter(Bean == "buffy")
+shapiro.test(x = data_buffy$Na)
+shapiro.test(x = data_buffy$Burn)
+```
+
+```{r Step_2_2_buffy, fig.width=4, fig.height=4, dpi=600}
+# 2. the relationship is linear
+PerformanceAnalytics::chart.Correlation(R = data_buffy[, c("Na", "Burn")],
+                                        histogram = TRUE, method = "pearson")
+```
+haha
+```{r Step_2_3_buffy, fig.width=4, fig.height=4, dpi=600}
+# 3. visualize data using scatter plots
+data_buffy %>% ggpubr::ggscatter(x = "Na", y = "Burn",
+                                 add = "reg.line", conf.int = TRUE,
+                                 xlab = "Na (g/l)",
+                                 ylab = "Burn (%)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+```{r Step_2_4_buffy, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - Na
+# prepare data
+x = data_buffy %>% select(Na) %>% unlist()
+
+# histogram plot
+HistPlot.x = ggpubr::gghistogram(data = x, binwidth = 2, add = "mean", fill = "gray", 
+                                 xlab = "Na (g/l)", add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.x = ggpubr::ggqqplot(data = x,
+                                ylab = "Na (g/l)")
+
+# box plot
+BoxPlot.x = ggpubr::ggboxplot(data = x, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Na (g/l)", orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.x, NormalPlot.x, nrow = 1, ncol = 2),
+                  BoxPlot.x, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_5_buffy, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - Burn
+# prepare data
+y = data_buffy %>% select(Burn) %>% unlist()
+
+# histogram plot
+HistPlot.y = ggpubr::gghistogram(data = y, binwidth = 3, add = "mean", fill = "gray", 
+                                 xlab = "Burn (%)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.y = ggpubr::ggqqplot(data = y,
+                                ylab = "Burn (%)")
+
+# box plot
+BoxPlot.y = ggpubr::ggboxplot(data = y, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Burn (%)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.y, NormalPlot.y, nrow = 1, ncol = 2),
+                  BoxPlot.y, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values - candy
+data_candy <- data %>% filter(Bean == "candy")
+
+x1 = data_candy$Na
+mean.x1 = mean(x = x1)
+y1 = data_candy$Burn
+mean.y1 = mean(x = y1)
+n1 = nrow(x = data_candy)
+
+# correlation coefficient (r)
+r1.numerator = sum((x1 - mean.x1) * (y1 - mean.y1))
+r1.denominator = sqrt(sum((x1 - mean.x1) ^ 2) * sum((y1 - mean.y1) ^ 2))
+r1 = r1.numerator / r1.denominator
+
+# fisher Z-transformation
+Z1.candy = 0.5 * log((1 + r1) / (1 - r1))
+
+# standard deviation
+Z1.sd.candy = 1 / sqrt(n1 - 3)
+
+# setting initial parameter values - buffy
+data_buffy <- data %>% filter(Bean == "buffy")
+x2 = data_buffy$Na
+mean.x2 = mean(x = x2)
+y2 = data_buffy$Burn
+mean.y2 = mean(x = y2)
+n2 = nrow(x = data_buffy)
+
+# correlation coefficient (r)
+r2.numerator = sum((x2 - mean.x2) * (y2 - mean.y2))
+r2.denominator = sqrt(sum((x2 - mean.x2) ^ 2) * sum((y2 - mean.y2) ^ 2))
+r2 = r2.numerator / r2.denominator
+
+# fisher Z-transformation
+Z1.buffy = 0.5 * log((1 + r2) / (1 - r2))
+
+# standard deviation
+Z1.sd.buffy = 1 / sqrt(n2 - 3)
+
+# test Statistic
+sigma = sqrt((Z1.sd.candy ^ 2) + (Z1.sd.buffy ^ 2))
+Z = (Z1.candy - Z1.buffy) / sigma
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qnorm(p = (1 - alpha), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - alpha), lower.tail = TRUE)
+} else {
+  lower.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = TRUE)
+}
+
+p_value = pnorm(q = Z, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", Z, "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "norm", statistic = Z, alpha = 0.05,
+             alternative = "two.sided")
+# method 2
+# setting initial parameter values
+r1 = cor.test(x = data_candy$Na, y = data_candy$Burn,
+              alternative = "two.sided", conf.level = 0.95)
+
+r2 = cor.test(x = data_buffy$Na, y = data_buffy$Burn,
+              alternative = "two.sided", conf.level = 0.95)
+
+# use "cocor.indep.groups" function from "cocor" package
+cocor::cocor.indep.groups(r1.jk = r1$estimate, n1 = n1,
+                   r2.hm = r2$estimate, n2 = n2,
+                   alternative = "two.sided")
+```
+
