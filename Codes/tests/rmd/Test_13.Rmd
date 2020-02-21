@@ -1,0 +1,166 @@
+---
+title: "Test 13: Z-test of a Correlation Coefficient"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "ggExtra",
+          "PerformanceAnalytics", "miscor")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_13.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1, fig.width=4, fig.height=4, dpi=600}
+# assumption checking:
+# 1. The x and y values originate from normal distributions
+# use shapiro-wilk normality test
+shapiro.test(x = data$pH)
+shapiro.test(x = data$Fodder)
+```
+
+```{r Step_2_2, fig.width=4, fig.height=4, dpi=600}
+# 2. the relationship is linear
+PerformanceAnalytics::chart.Correlation(R = data[, c("pH", "Fodder")],
+                                        histogram = TRUE, method = "pearson")
+```
+
+```{r Step_2_3, fig.width=4, fig.height=4, dpi=600}
+
+# 3. visualize data using scatter plots
+data %>% ggpubr::ggscatter(x = "pH", y = "Fodder",
+                           add = "reg.line", conf.int = TRUE,
+                           xlab = "pH",
+                           ylab = "Fodder (ton/hectare)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+```{r Step_2_4, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - pH
+# prepare data
+x = data %>% select(pH) %>% unlist()
+
+# histogram plot
+HistPlot.x = ggpubr::gghistogram(data = x, binwidth = 1, add = "mean", fill = "gray", 
+                                 xlab = "pH", add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.x = ggpubr::ggqqplot(data = x,
+                                ylab = "pH")
+
+# box plot
+BoxPlot.x = ggpubr::ggboxplot(data = x, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "pH", orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.x, NormalPlot.x, nrow = 1, ncol = 2),
+                  BoxPlot.x, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_5, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - Fodder
+# prepare data
+y = data %>% select(Fodder) %>% unlist()
+
+# histogram plot
+HistPlot.y = ggpubr::gghistogram(data = y, binwidth = 1, add = "mean", fill = "gray", 
+                                 xlab = "Fodder (ton/hectare)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.y = ggpubr::ggqqplot(data = y,
+                                ylab = "Fodder (ton/hectare)")
+
+# box plot
+BoxPlot.y = ggpubr::ggboxplot(data = y, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Fodder (ton/hectare)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.y, NormalPlot.y, nrow = 1, ncol = 2),
+                  BoxPlot.y, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data$pH
+mean.x = mean(x = x)
+y = data$Fodder
+mean.y = mean(x = y)
+n = length(x)
+
+# specified value of correlation coefficient
+rho0 = 0.75
+
+# correlation coefficient (r)
+r.numerator = sum((x - mean.x) * (y - mean.y))
+r.denominator = sqrt(sum((x - mean.x) ^ 2) * sum((y - mean.y) ^ 2))
+r = r.numerator / r.denominator
+
+# fisher Z-transformation
+Z1 = 0.5 * log((1 + r) / (1 - r))
+
+# the distribution of Z1 is approximately normal with mean
+Z1.m = 0.5 * log((1 + rho0) / (1 - rho0))
+
+# and standard deviation:
+Z1.sd = 1 / sqrt(n - 3)
+
+# Test Statistic
+Z = (Z1 - Z1.m) / Z1.sd
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qnorm(p = (1 - alpha), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - alpha), lower.tail = TRUE)
+} else {
+  lower.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = TRUE)
+}
+
+p_value = pnorm(q = Z, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", Z, "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "norm", statistic = Z, alpha = 0.05,
+             alternative = "two.sided")
+
+# method 2
+# setting initial parameter values
+r = cor(x = data$pH, y = data$Fodder)
+n = nrow(x = data)
+rho0 = 0.75
+
+# use "test.cor" function from "miscor" package
+miscor::test.cor(r = r, n = n, rho0 = rho0, conf.level = 0.90, reduced = TRUE)
+```
