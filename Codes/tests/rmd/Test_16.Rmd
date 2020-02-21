@@ -1,0 +1,128 @@
+---
+title: "Test 16: F-test for Two Population Variances (Variance Ratio Test)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_16.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - setosa
+# prepare data
+x = data %>% filter(Species == "setosa") %>% select(Sepal.Width) %>% unlist()
+
+# histogram plot
+HistPlot.x = ggpubr::gghistogram(data = x, binwidth = 0.5, add = "mean", fill = "gray", 
+                                 xlab = "Sepal Width(cm)", add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.x = ggpubr::ggqqplot(data = x, ylab = "Sepal Width(cm)")
+
+# box plot
+BoxPlot.x = ggpubr::ggboxplot(data = x, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Sepal Width(cm)", orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.x, NormalPlot.x, nrow = 1, ncol = 2),
+                  BoxPlot.x, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_2, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - virginica
+# prepare data
+y = data %>% filter(Species == "virginica") %>% select(Sepal.Width) %>% unlist()
+
+# histogram plot
+HistPlot.y = ggpubr::gghistogram(data = y, binwidth = 0.5, add = "mean", fill = "gray", 
+                                 xlab = "Sepal Width(cm)", add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.y = ggpubr::ggqqplot(data = y, ylab = "Sepal Width(cm)")
+
+# box plot
+BoxPlot.y = ggpubr::ggboxplot(data = y, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Sepal Width(cm)", orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.y, NormalPlot.y, nrow = 1, ncol = 2),
+                  BoxPlot.y, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data %>% filter(Species == "setosa") %>% select(Sepal.Width) %>% unlist()
+n.x = length(x = x)
+mean.x = mean(x = x)
+var.x = var(x = x)
+
+y = data %>% filter(Species == "virginica") %>% select(Sepal.Width) %>% unlist()
+n.y = length(x = y)
+mean.y = mean(x = y)
+var.y = var(x = y)
+
+# test statistic
+FF = var.x / var.y
+
+# degrees of freedom
+df1 = n.x - 1
+df2 = n.y - 1
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = TRUE)
+} else {
+  lower.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = TRUE)
+}
+
+p_value = pf(q = FF, df1 = df1, df2 = df2, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", FF, "\n")
+cat("Degrees of Freedom:", c(df1, df2), "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "f", statistic = FF, df1 = df1, df2 = df2,
+             alpha = 0.05, alternative = "two.sided", from = 0, to = 3)
+
+# method 2
+# setting initial parameter values
+x = data %>% filter(Species == "setosa") %>% select(Sepal.Width) %>% unlist()
+y = data %>% filter(Species == "virginica") %>% select(Sepal.Width) %>% unlist()
+
+# use "var.test" function from "stats" package
+stats::var.test(x = x, y = y, alternative = "two.sided", conf.level = 0.95)
+```
