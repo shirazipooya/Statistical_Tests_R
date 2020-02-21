@@ -13,13 +13,13 @@ This book explains the purpose of some of the most commonly used statistical tes
 - [x] Test 07
 - [x] Test 08
 - [x] Test 09
-- [ ] Test 10
-- [ ] Test 11
-- [ ] Test 12
-- [ ] Test 13
-- [ ] Test 14
-- [ ] Test 15
-- [ ] Test 16
+- [x] Test 10
+- [x] Test 11
+- [x] Test 12
+- [x] Test 13
+- [x] Test 14
+- [x] Test 15
+- [x] Test 16
 - [ ] Test 17
 - [ ] Test 18
 - [ ] Test 19
