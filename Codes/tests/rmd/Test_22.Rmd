@@ -1,0 +1,117 @@
+---
+title: "Test 22: χ2-test for an Assumed Population Variance"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "EnvStats")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_22.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1, fig.width=4, fig.height=4, dpi=600}
+# visualize data using scatter plots
+data %>% ggpubr::ggscatter(x = "Gravimetric", y = "TDR",
+                           add = "reg.line", conf.int = TRUE,
+                           xlab = "Gravimetric Soil Moisture (%)",
+                           ylab = "TDR Soil Moisture (%)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+
+```{r Step_2_2, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data
+x = data$Gravimetric - data$TDR
+
+# normality plot
+nPlot = ggpubr::ggqqplot(data = x, ylab = "Diff. Soil Moisture (%)")
+
+# histogram plot
+hPlot = ggpubr::gghistogram(data = x, binwidth = 4, 
+                            add = "mean", fill = "gray", 
+                            xlab = "Diff. Soil Moisture (%)",
+                            add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlot = ggpubr::ggboxplot(data = x, add = c("mean"), fill = "gray",
+                          width = 0.5, xlab = "Sirvan",
+                          ylab = "Diff. Soil Moisture (%)",
+                          orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlot, nPlot, nrow = 1, ncol = 2),
+                  bPlot, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data$Gravimetric - data$TDR
+mean.x = mean(x = x)
+n.x = length(x = x)
+var.pop = 10
+
+# sample variance
+var.x = (sum((x - mean.x) ^ 2)) / (n.x - 1)
+
+# test statistic
+chi2 = (var.x / var.pop) * (n.x - 1)
+
+# degrees of freedom
+df = n.x - 1
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qchisq(p = (1 - alpha), df = df, lower.tail = FALSE)
+  upper.critical = qchisq(p = (1 - alpha), df = df, lower.tail = TRUE)
+} else {
+  lower.critical = qchisq(p = (1 - (alpha / 2)), df = df, lower.tail = FALSE)
+  upper.critical = qchisq(p = (1 - (alpha / 2)), df = df, lower.tail = TRUE)
+}
+
+p_value = pchisq(q = chi2, df = df, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", chi2, "\n")
+cat("Degrees of Freedom:", df, "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "chisq", statistic = chi2, df = df, alpha = 0.05,
+             alternative = "two.sided", from = 10, to = 60)
+
+# method 2
+# use "varTest" function from "EnvStats" package 
+var.pop = 10
+EnvStats::varTest(x = x, sigma.squared = var.pop,
+                  alternative = "two.sided", conf.level = 0.95)
+
+```
+
