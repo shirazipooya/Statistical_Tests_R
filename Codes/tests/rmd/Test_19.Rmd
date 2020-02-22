@@ -1,0 +1,110 @@
+---
+title: "Test 19: Discriminant Test for the Origin of a p-fold Sample"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "MVTests")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_18.csv", header = TRUE)
+
+data.sample = read.csv(file = "../data/Data_Test_19.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data.sample, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=6, fig.height=6, dpi=600}
+# visualizing samples with box plots
+SL <- ggpubr::ggboxplot(data = data$Sepal.Length,
+                        add = "mean", xlab = "Sepal Length",
+                        ylab = "cm", width = 0.5)
+SW <- ggpubr::ggboxplot(data = data$Sepal.Width,
+                        add = "mean", xlab = "Sepal Width", 
+                        ylab = "cm", width = 0.5)
+PL <- ggpubr::ggboxplot(data = data$Petal.Length,
+                        add = "mean", xlab = "Petal Length", 
+                        ylab = "cm", width = 0.5)
+PW <- ggpubr::ggboxplot(data = data$Sepal.Length,
+                        add = "mean", xlab = "Petal Width",
+                        ylab = "cm", width = 0.5)
+
+# arrange on one page
+ggpubr::ggarrange(SL, SW, PL, PW, nrow = 2, ncol = 2)
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+XY = function(X, Y) {
+  X = unlist(x = X)
+  Y = unlist(x = Y)
+  result = sum((X - mean(X)) * (Y - mean(Y)))
+  return(result)
+}
+
+data = data %>% filter(Species != "virginica")
+
+A = data %>% filter(Species == "setosa") %>% select(-Species)
+mean.A = colMeans(x = A)
+n.A = nrow(x = A)
+
+B = data %>% filter(Species == "versicolor") %>% select(-Species)
+mean.B = colMeans(x = B)
+n.B = nrow(x = B)
+
+n = n.A + n.B
+p = ncol(x = A)
+
+# solve the equations to find the statistics a, b, c and d (AA * x = BB)
+data_AA = c()
+
+for (i in 1:p) {
+  for (j in 1:p) {
+    data_AA = c(data_AA, (XY(A[i], A[j]) + XY(B[i], B[j])))
+  }
+}
+
+AA = array(data = data_AA, dim = c(p, p))
+
+BB = c()
+for (i in 1:p) {
+  BB = c(BB, ((n - 2) * (mean.A[i] - mean.B[i])))
+}
+
+coef = solve(a = AA, b = BB)
+
+# discriminant test
+DA = sum(coef * mean.A)
+DB = sum(coef * mean.B)
+
+S = data.sample
+mean.S = colMeans(x = S)
+
+DS = sum(coef * mean.S)
+
+if (abs(DA - DS) < abs(DB - DS)) {
+  cat("S Series Belongs to Population A")
+} else {
+  cat("S Series Belongs to Population B")
+}
+
+```
