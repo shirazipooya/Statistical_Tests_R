@@ -1,0 +1,152 @@
+---
+title: "Test 20: Dixon’s Test for Outliers"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "outliers")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_20.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+
+```{r Step_2, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - setosa
+# prepare data
+x = data %>% select(Prec) %>% unlist()
+
+# histogram plot
+HistPlot.x = ggpubr::gghistogram(data = x, binwidth = 75, add = "mean", 
+                                 fill = "gray", xlab = "Precipitation (mm)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.x = ggpubr::ggqqplot(data = x, ylab = "Precipitation (mm)")
+
+# box plot
+BoxPlot.x = ggpubr::ggboxplot(data = x, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Precipitation (mm)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.x, NormalPlot.x, nrow = 1, ncol = 2),
+                  BoxPlot.x, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = sort(x = data$Prec)
+n = length(x = x)
+
+# select type
+if (n <= 7) {
+  type = 10
+} else if (n > 7 & n <= 10) {
+  type = 11
+} else if (n > 10 & n <= 13) {
+  type = 21
+} else {
+  type = 22
+}
+
+# test statistic
+# check not the value with lowest difference from the mean
+if (type == 10) {
+  Qmin = (x[2] - x[1]) / (x[n] - x[1])
+} else if (type == 11) {
+  Qmin = (x[2] - x[1]) / (x[n - 1] - x[1])
+} else if (type == 21) {
+  Qmin = (x[3] - x[1]) / (x[n - 1] - x[1])
+} else {
+  Qmin = (x[3] - x[1]) / (x[n - 2] - x[1])
+}
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  dixon.critical = qdixon(p = alpha, n = n, type = type)
+} else {
+  dixon.critical = qdixon(p = (alpha / 2), n = n, type = type)
+}
+
+p_value = pdixon(q = Qmin, n = n, type = type)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Lowest Value:", x[1], "\n")
+cat("Test Statistic: ", Qmin, "\n")
+cat("Critical Values: ", dixon.critical, "\n")
+cat("P-value: ", p_value, "\n")
+
+# check not the value with largest difference from the mean
+if (type == 10) {
+  Qmax = (x[n] - x[n - 1]) / (x[n] - x[1])
+} else if (type == 11) {
+  Qmax = (x[n] - x[n - 1]) / (x[n] - x[2])
+} else if (type == 21) {
+  Qmax = (x[n] - x[n - 2]) / (x[n] - x[2])
+} else {
+  Qmax = (x[n] - x[n - 2]) / (x[n] - x[3])
+}
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  dixon.critical = qdixon(p = alpha, n = n, type = type)
+} else {
+  dixon.critical = qdixon(p = (alpha / 2), n = n, type = type)
+}
+
+p_value = pdixon(q = Qmax, n = n, type = type)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Highest Value:", x[n], "\n")
+cat("Test Statistic: ", Qmax, "\n")
+cat("Critical Values: ", dixon.critical, "\n")
+cat("P-value: ", p_value, "\n")
+
+# visualizing samples with box plots
+ggpubr::ggboxplot(data = data$Prec, 
+                  fill = "gray", add = "mean", xlab = "", 
+                  ylab = "Precipitation (mm)", width = 0.5)
+
+# method 2
+# use "dixon.test" function from "outliers" package
+# check not the value with lowest difference from the mean
+outliers::dixon.test(x = data$Prec, opposite = TRUE, two.sided = TRUE)
+
+# check not the value with largest difference from the mean
+outliers::dixon.test(x = data$Prec, opposite = FALSE, two.sided = TRUE)
+```
