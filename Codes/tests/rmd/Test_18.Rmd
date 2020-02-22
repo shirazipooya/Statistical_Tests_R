@@ -1,0 +1,151 @@
+---
+title: "Test 18: Hotelling’s T2 Test for Two Series of Population Means"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "MVTests")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_18.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1, fig.width=6, fig.height=6, dpi=600}
+# prepare data
+data = data %>% filter(Species != "virginica")
+
+# visualizing samples with box plots
+SL <- ggpubr::ggboxplot(data = data, x = "Species", y = "Sepal.Length",
+                        add = "mean", ylab = "Sepal Length (cm)")
+SW <- ggpubr::ggboxplot(data = data, x = "Species", y = "Sepal.Width",
+                        add = "mean", ylab = "Sepal Width (cm)")
+PL <- ggpubr::ggboxplot(data = data, x = "Species", y = "Petal.Length",
+                        add = "mean", ylab = "Petal Length (cm)")
+PW <- ggpubr::ggboxplot(data = data, x = "Species", y = "Sepal.Length",
+                        add = "mean", ylab = "Petal Width (cm)")
+
+# arrange on one page
+ggpubr::ggarrange(SL, SW, PL, PW, nrow = 2, ncol = 2)
+
+```
+
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+XY = function(X, Y) {
+  X = unlist(x = X)
+  Y = unlist(x = Y)
+  result = sum((X - mean(X)) * (Y - mean(Y)))
+  return(result)
+}
+
+data = data %>% filter(Species != "virginica")
+
+A = data %>% filter(Species == "setosa") %>% select(-Species)
+mean.A = colMeans(x = A)
+n.A = nrow(x = A)
+
+B = data %>% filter(Species == "versicolor") %>% select(-Species)
+mean.B = colMeans(x = B)
+n.B = nrow(x = B)
+
+n = n.A + n.B
+p = ncol(x = A)
+
+# solve the equations to find the statistics a, b, c and d (AA * x = BB)
+data_AA = c()
+
+for (i in 1:p) {
+  for (j in 1:p) {
+    data_AA = c(data_AA, (XY(A[i], A[j]) + XY(B[i], B[j])))
+  }
+}
+
+AA = array(data = data_AA, dim = c(p, p))
+
+BB = c()
+for (i in 1:p) {
+  BB = c(BB, ((n - 2) * (mean.A[i] - mean.B[i])))
+}
+
+coef = solve(a = AA, b = BB)
+
+# Hotelling’s T2
+T2.a = (n.A * n.B) / (n.A + n.B)
+
+T2.b = c()
+for (i in 1:p) {
+  T2.b = c(T2.b, (coef[i] * (mean.A[i] - mean.B[i])))
+}
+
+T2.b = sum(T2.b)
+
+T2 = T2.a * T2.b
+
+# test statistic 
+FF = ((n.A + n.B - p - 1) / (p * (n.A + n.B - 2))) * T2
+
+# degrees of freedom
+df1 = p
+df2 = n.A + n.B - p - 1
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = TRUE)
+} else {
+  lower.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = TRUE)
+}
+
+p_value = pf(q = FF, df1 = df1, df2 = df2, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Hotelling T Sqaure Statistic:", T2, "\n")
+cat("Test Statistic:", FF, "\n")
+cat("Degrees of Freedom:", c(df1, df2), "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "f", statistic = FF, df1 = df1, df2 = df2,
+             alpha = 0.05, alternative = "two.sided", from = 0, to = 4)
+
+
+# method 2
+# setting initial parameter values
+data = data %>% filter(Species != "virginica") %>% select(-Species)
+group = c(rep(x = 1, 50), rep(x = 2, 50))
+
+# use "TwoSamplesHT2" function from "MVTests" package
+result = MVTests::TwoSamplesHT2(data = data, group = group, 
+                                alpha = 0.05, Homogenity = TRUE)
+
+summary(object = result)
+```
