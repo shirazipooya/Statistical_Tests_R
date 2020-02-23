@@ -1,0 +1,96 @@
+---
+title: "Test 25: F-test for Two Counts (Poisson Distribution)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_23.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# visualize data using scatter plots
+dataPlot = data.frame(Rasht = ifelse(test = data$Rasht == 0, yes = 1, no = 0),
+                      Ramsar = ifelse(test = data$Ramsar == 0, yes = 1, no = 0))
+
+
+mosaicplot(x = table(dataPlot), main = "")
+
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# setting initial parameter values
+x = data$Rasht
+time.x = length(x = x)
+n.x = sum(x == 0)
+
+y = data$Ramsar
+time.y = length(x = y)
+n.y = sum(y == 0)
+
+if (time.x == time.y) {
+  # test statistic
+  FF = n.x / (n.y + 1)
+  
+  # degrees of freedom
+  df1 = 2 * (n.y + 1)
+  df2 = 2 * n.x
+} else {
+  # test statistic
+  FF = ((1/time.x) * (n.x + 0.5)) / ((1/time.y) * (n.y + 0.5))
+  
+  # degrees of freedom
+  df1 = (2 * n.x) + 1
+  df2 = (2 * n.y) + 1
+}
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = TRUE)
+} else {
+  lower.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = TRUE)
+}
+
+p_value = pf(q = FF, df1 = df1, df2 = df2, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", FF, "\n")
+cat("Degrees of Freedom:", c(df1, df2), "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "f", statistic = FF, df1 = df1, df2 = df2,
+             alpha = 0.05, alternative = "two.sided", from = 0.5, to = 2)
+
+```
+
