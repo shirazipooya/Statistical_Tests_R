@@ -1,0 +1,90 @@
+---
+title: "Test 24: The w/s-test for Normality of a Population"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_24.csv", header = TRUE)
+cv_table = read.csv(file = "../data/Table_Test_24.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+
+```{r Step_2, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data:
+# normality plot
+nPlot = ggpubr::ggqqplot(data = data$Prec, ylab = "Precipitation (mm)")
+
+# histogram plot
+hPlot = ggpubr::gghistogram(data = data$Prec, binwidth = 100, add = "mean", 
+                             fill = "gray", xlab = "Precipitation (mm)",
+                             add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlot = ggpubr::ggboxplot(data = data$Prec, add = c("mean"), fill = "gray",
+                           width = 0.5, xlab = "", ylab = "Precipitation (mm)",
+                           orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlot, nPlot, nrow = 1, ncol = 2),
+                  bPlot, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# setting initial parameter values
+x = data$Prec
+n.x = length(x = x)
+mean.x = mean(x)
+
+# sample standard deviation (s)
+sd.x = sqrt(x = ((sum((x - mean.x) ^ 2) / (n.x - 1)))) # sd.x = sd(x = x)
+
+# sample range (w)
+sorted.x = sort(x = x, decreasing = FALSE)
+w.x = sorted.x[n.x] - sorted.x[1]
+
+# test statistic
+q = w.x / sd.x
+
+# compute the critical values and p-value
+alpha = "0.050"
+
+cv = switch(EXPR = alpha,
+            "0.000" = cv_table %>% filter(n >= n.x) %>% select(a000, b000) %>% slice(1),
+            "0.005" = cv_table %>% filter(n >= n.x) %>% select(a005, b005) %>% slice(1),
+            "0.010" = cv_table %>% filter(n >= n.x) %>% select(a010, b010) %>% slice(1),
+            "0.025" = cv_table %>% filter(n >= n.x) %>% select(a025, b025) %>% slice(1),
+            "0.050" = cv_table %>% filter(n >= n.x) %>% select(a050, b050) %>% slice(1),
+            "0.100" = cv_table %>% filter(n >= n.x) %>% select(a100, b100) %>% slice(1))
+
+
+cat("Test Statistic:", q, "\n")
+cat("Critical Values:", c(cv[[1]], cv[[2]]), "\n")
+if (q < cv[[1]] | q > cv[[2]]) {
+  cat("Reject H0: Sample Distribution Cannot Be Considered As A Normal Distribution", "\n")
+} else {
+  cat("Accept H0: Sample Distribution Can Be Considered As A Normal Distribution", "\n")
+}
+```
