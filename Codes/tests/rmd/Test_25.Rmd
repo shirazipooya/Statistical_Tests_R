@@ -1,0 +1,93 @@
+---
+title: "Test 25: Cochran’s Test for Variance Outliers"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "outliers")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_25.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+dataPlot = data %>% reshape2::melt()
+
+# visualizing samples with box plots
+ggpubr::ggboxplot(data = dataPlot, x = "variable", y = "value",
+                  add = "mean", xlab = "Station", ylab = "Yield (kg/ha)")
+```
+
+```{r Step_3}
+# method 1
+# setting initial parameter values
+n = n1 = n2 = n3 = n4 = n5 = nrow(x = data)
+k = ncol(x = data)
+
+d1 = data %>% select(S1) %>% unlist()
+v1 = var(x = d1)
+
+d2 = data %>% select(S2) %>% unlist()
+v2 = var(x = d2)
+
+d3 = data %>% select(S3) %>% unlist()
+v3 = var(x = d3)
+
+d4 = data %>% select(S4) %>% unlist()
+v4 = var(x = d4)
+
+d5 = data %>% select(S5) %>% unlist()
+v5 = var(x = d5)
+
+v = c(v1, v2, v3, v4, v5)
+
+# test statistic
+C = max(v) / sum(v)
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "greater"
+
+if (alternative != "two.sided") {
+  cochran.critical = outliers::qcochran(p = (1 - alpha), n = n, k = k)
+} else {
+  cochran.critical = outliers::qcochran(p = (1 - (alpha / 2)), n = n, k = k)
+}
+
+p_value = outliers::pcochran(q = C, n = n, k = k)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic: ", C, "\n")
+cat("Critical Values: ", cochran.critical, "\n")
+cat("P-value: ", p_value, "\n")
+
+# method 2
+# use "cochran.test" function from "outliers" package
+outliers::cochran.test(object = v,
+                       data = rep(x = n, k),
+                       inlying = FALSE)
+```
+
