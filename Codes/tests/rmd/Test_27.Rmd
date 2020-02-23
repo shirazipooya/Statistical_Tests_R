@@ -1,0 +1,116 @@
+---
+title: "Test 27: The Wilcoxon–Mann–Whitney Rank Sum Test of Two Populations"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_27.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data:
+# normality plot
+nPlotA = ggpubr::ggqqplot(data = data$A, ylab = "Yield (kg/ha)")
+
+# histogram plot
+hPlotA = ggpubr::gghistogram(data = data$A, binwidth = 400, add = "mean", 
+                                  fill = "gray", xlab = "Yield (kg/ha)",
+                                  add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlotA = ggpubr::ggboxplot(data = data$A, add = c("mean"), fill = "gray",
+                                width = 0.5, xlab = "Tape A", ylab = "Yield (kg/ha)",
+                                orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotA, nPlotA, nrow = 1, ncol = 2),
+                  bPlotA, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_2, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data:
+# normality plot
+nPlotB = ggpubr::ggqqplot(data = data$B, ylab = "Yield (kg/ha)")
+
+# histogram plot
+hPlotB = ggpubr::gghistogram(data = data$B, binwidth = 400, add = "mean",
+                                   fill = "gray", xlab = "Yield (kg/ha)",
+                                   add.params = list(size = 1.2, linetype = 2))
+
+# box plot
+bPlotB = ggpubr::ggboxplot(data = data$B, add = c("mean"), fill = "gray",
+                                 width = 0.5, xlab = "Tape B", ylab = "Yield (kg/ha)",
+                                 orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(hPlotB, nPlotB, nrow = 1, ncol = 2),
+                  bPlotB, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# setting initial parameter values
+data = data %>% 
+  reshape2::melt(variable.name = "Tape", value.name = "Yield")
+
+rankedData = data %>% 
+  dplyr::mutate(Yield = round(x = Yield, digits = 2)) %>% 
+  dplyr::mutate(Rank = rank(x = Yield))
+
+nA = sum(rankedData$Tape == "A")
+RA = sum(rankedData %>% filter(Tape == "A") %>% select(Rank))
+
+nB = sum(rankedData$Tape == "B")
+RB = sum(rankedData %>% filter(Tape == "B") %>% select(Rank))
+
+# size of the combined samples 
+N = nA + nB
+
+# rank sum R of the smaller sample and n denote the size of the smaller sample
+if (nA < nB) {
+  n = nA
+  R = RA
+} else if (nA > nB) {
+  n = nB
+  R = RB
+} else {
+  if (RA < RB) {
+    n = nA
+    R = RA
+  } else {
+    n = nB
+    R = RB
+  }
+}
+
+# second quantity
+Rprime = (n * (N + 1)) - R
+
+cat("n1:", max(nA, nB), "\n")
+cat("n2:", min(nA, nB), "\n")
+cat("R:", R, "\n")
+cat("R':", Rprime, "\n")
+```
