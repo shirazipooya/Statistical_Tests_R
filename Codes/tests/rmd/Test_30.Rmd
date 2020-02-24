@@ -1,0 +1,171 @@
+---
+title: "Test 30: F-test for Testing Linearity of Regression"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "ggExtra")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_30.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1, fig.width=4, fig.height=4, dpi=600}
+# assumption checking:
+shapiro.test(x = data$P_Soil)
+shapiro.test(x = data$P_Corn)
+```
+
+```{r Step_2_2, fig.width=4, fig.height=4, dpi=600}
+# that the relationship is linear
+PerformanceAnalytics::chart.Correlation(R = data[, c("P_Soil", "P_Corn")])
+
+# visualize data using scatter plots
+data %>% ggpubr::ggscatter(x = "P_Soil", y = "P_Corn",
+                           add = "reg.line", conf.int = TRUE,
+                           xlab = "P Soil (ppm)",
+                           ylab = "P Corn (ppm)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+```{r Step_2_4, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - P Soil
+# prepare data
+x = data$P_Soil
+
+# histogram plot
+HistPlot.x = ggpubr::gghistogram(data = x, binwidth = 8, add = "mean", fill = "gray", 
+                                 xlab = "P Soil (ppm)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.x = ggpubr::ggqqplot(data = x,
+                                ylab = "P Soil (ppm)")
+
+# box plot
+BoxPlot.x = ggpubr::ggboxplot(data = x, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "P Soil (ppm)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.x, NormalPlot.x, nrow = 1, ncol = 2),
+                  BoxPlot.x, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_5, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - P corn
+# prepare data
+y = data$P_Corn
+
+# histogram plot
+HistPlot.y = ggpubr::gghistogram(data = y, binwidth = 8, add = "mean", fill = "gray", 
+                                 xlab = "P Corn (ppm)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.y = ggpubr::ggqqplot(data = y,
+                                ylab = "P Corn (ppm)")
+
+# box plot
+BoxPlot.y = ggpubr::ggboxplot(data = y, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "P Corn (ppm)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.y, NormalPlot.y, nrow = 1, ncol = 2),
+                  BoxPlot.y, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# x variable
+x = data$P_Soil
+mean.x = mean(x = x)
+
+# y variable
+y = data$P_Corn
+mean.y = mean(x = y)
+
+# length data
+n = nrow(x = data)
+
+# regression coefficient (b)
+b = (sum(x * y) - ((sum(x) * sum(y)) / n)) / (sum(x ^ 2) - (sum(x) ^ 2 / n))
+
+# total sum of squares (SST)
+SST = sum((y - mean.y) ^ 2)
+
+# regression sum of squares (SSR)
+SSR <- sum((b * (x - mean.x)) ^ 2)
+
+# residual sum of squares (SSE)
+SSE <- sum((y - mean.y - (b * (x - mean.x))) ^ 2)
+
+# mean squares
+SSE.m <- SSE / (n - 2)
+SSR.m <- SSR / 1
+
+# ratio of mean squares (F)
+FF = SSR.m / SSE.m
+
+# degrees of freedom
+df1 = 1
+df2 = n - 2
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "greater"
+
+if (alternative != "two.sided") {
+  lower.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = TRUE)
+} else {
+  lower.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = TRUE)
+}
+
+p_value = pf(q = FF, df1 = df1, df2 = df2, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", FF, "\n")
+cat("Degrees of Freedom:", c(df1, df2), "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(distribution = "f", statistic = FF, df1 = df1, df2 = df2,
+             alpha = 0.05, alternative = "two.sided")
+
+
+# method 2
+mod <- lm(formula = P_Corn ~ P_Soil, data = data)
+
+summary(mod)
+
+# assumption checking
+# 1. The error terms are normally and independently distributed with mean zero.
+shapiro.test(x = mod$residuals)
+mean(mod$residuals)
+```
