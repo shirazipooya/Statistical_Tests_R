@@ -20,20 +20,20 @@ This book explains the purpose of some of the most commonly used statistical tes
 - [x] Test 14
 - [x] Test 15
 - [x] Test 16
-- [ ] Test 17
-- [ ] Test 18
-- [ ] Test 19
-- [ ] Test 20
-- [ ] Test 21
-- [ ] Test 22
-- [ ] Test 23
-- [ ] Test 24
-- [ ] Test 25
-- [ ] Test 26
-- [ ] Test 27
-- [ ] Test 28
-- [ ] Test 29
-- [ ] Test 30
+- [x] Test 17
+- [x] Test 18
+- [x] Test 19
+- [x] Test 20
+- [x] Test 21
+- [x] Test 22
+- [x] Test 23
+- [x] Test 24
+- [x] Test 25
+- [x] Test 26
+- [x] Test 27
+- [x] Test 28
+- [x] Test 29
+- [x] Test 30
 - [ ] Tables
 - [ ] Base R
 - [ ] Reference
