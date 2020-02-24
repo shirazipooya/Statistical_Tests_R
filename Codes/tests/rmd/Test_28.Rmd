@@ -1,0 +1,176 @@
+---
+title: "Test 28: The Spearman Rank Correlation Test (Paired Observations)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "pspearman", "PerformanceAnalytics")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_28.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1, fig.width=4, fig.height=4, dpi=600}
+# assumption checking:
+shapiro.test(x = data$Discharge)
+shapiro.test(x = data$Erosion)
+```
+
+```{r Step_2_2, fig.width=4, fig.height=4, dpi=600}
+# 2. that the relationship is linear
+PerformanceAnalytics::chart.Correlation(R = data[, c("Discharge", "Erosion")])
+
+# 3. visualize data using scatter plots
+data %>% ggpubr::ggscatter(x = "Discharge", y = "Erosion",
+                           add = "reg.line", conf.int = TRUE,
+                           xlab = "Q (l/s)",
+                           ylab = "Erosion (kg)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+```{r Step_2_3, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - Discharge
+# prepare data
+x = data$Discharge
+
+# histogram plot
+HistPlot.x = ggpubr::gghistogram(data = x, binwidth = 1, add = "mean", fill = "gray", 
+                                 xlab = "Q (l/s)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.x = ggpubr::ggqqplot(data = x,
+                                ylab = "Q (l/s)")
+
+# box plot
+BoxPlot.x = ggpubr::ggboxplot(data = x, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Q (l/s)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.x, NormalPlot.x, nrow = 1, ncol = 2),
+                  BoxPlot.x, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+```{r Step_2_4, fig.width=8, fig.height=6, dpi=600}
+# visualizing sample data - Erosion
+# prepare data
+y = data$Erosion
+
+# histogram plot
+HistPlot.y = ggpubr::gghistogram(data = y, binwidth = 1, add = "mean", fill = "gray", 
+                                 xlab = "Erosion (kg)",
+                                 add.params = list(size = 1.2, linetype = 2))
+
+# normality plot
+NormalPlot.y = ggpubr::ggqqplot(data = y,
+                                ylab = "Erosion (kg)")
+
+# box plot
+BoxPlot.y = ggpubr::ggboxplot(data = y, add = c("mean"), fill = "gray", width = 0.5,
+                              xlab = "", ylab = "Erosion (kg)",
+                              orientation = "horizontal")
+
+# arrange on one page
+ggpubr::ggarrange(ggpubr::ggarrange(HistPlot.y, NormalPlot.y, nrow = 1, ncol = 2),
+                  BoxPlot.y, nrow = 2, ncol = 1, heights = c(4, 3))
+```
+
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data$Discharge
+y = data$Erosion
+n = length(x = x)
+
+# rank the x and y variables
+rank_x = rank(x = x)
+rank_y = rank(x = y)
+
+# the observed value of R statistics
+R = sum((rank_x - rank_y) ^ 2)
+
+if (n > 10) {
+  # spearman's ρ statistic
+  rho = 1 - ((6 * R) / (n * ((n ^ 2) - 1)))
+  
+  # test statistic
+  Z = ((6 * R) - (n * ((n ^ 2) - 1))) / (n * (n + 1) * sqrt(n - 1))
+  
+  # compute the critical values and p-value
+  alpha = 0.05
+  alternative = "two.sided"
+  
+  if (alternative != "two.sided") {
+    lower.critical = qnorm(p = (1 - alpha), lower.tail = FALSE)
+    upper.critical = qnorm(p = (1 - alpha), lower.tail = TRUE)
+  } else {
+    lower.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = FALSE)
+    upper.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = TRUE)
+  }
+  
+  p_value = pnorm(q = Z, lower.tail = TRUE)
+  p_value = switch(EXPR = alternative,
+                   two.sided = 2 * min(p_value, 1 - p_value),
+                   less = p_value,
+                   greater = 1 - p_value)
+  
+  cat("Observed Value of R Statistics:", R, "\n")
+  cat("Spearman's ρ Statistic:", rho, "\n")
+  cat("Test Statistic:", Z, "\n")
+  cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+  cat("P-value:", p_value, "\n")
+  
+  plotDistStat(distribution = "norm", statistic = Z, alpha = 0.05,
+               alternative = "two.sided")
+
+} else {
+  # spearman's ρ statistic
+  rho = 1 - ((6 * S) / (n * ((n ^ 2) - 1)))
+  
+  # degrees of freedom
+  df = n - 2
+
+  # compute the critical values
+  alpha = 0.05
+  
+  lower.critical = qt(p = (1 - alpha), df = df, lower.tail = FALSE)
+  lower.critical.r = psych::t2r(t = lower.critical, df = df)
+  
+  upper.critical = qt(p = (1 - alpha), df = df, lower.tail = TRUE)
+  upper.critical.r = psych::t2r(t = upper.critical, df = df)
+  
+  cat("Observed Value of R Statistics:", R, "\n")
+  cat("Spearman's ρ Statistic (Test Statistic):", rho, "\n")
+  cat("Critical Values:", c(lower.critical.r, upper.critical.r), "\n")
+}
+
+# method 2
+# use "cor.test" function from "stats" package 
+cor.test(x = data$Discharge,
+         y = data$Erosion,
+         alternative = "two.sided",
+         method = "spearman",
+         exact = FALSE)
+```
