@@ -1,0 +1,112 @@
+---
+title: "Test 29: The Kendall Rank Correlation Test (Paired Observations)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "../r/func.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "pspearman", "PerformanceAnalytics")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "../data/Data_Test_28.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2_1, fig.width=4, fig.height=4, dpi=600}
+# 2. that the relationship is linear
+PerformanceAnalytics::chart.Correlation(R = data[, c("Discharge", "Erosion")],
+                                        method = "kendall")
+
+# 3. visualize data using scatter plots
+data %>% ggpubr::ggscatter(x = "Discharge", y = "Erosion",
+                           add = "reg.line", conf.int = TRUE,
+                           xlab = "Q (l/s)",
+                           ylab = "Erosion (kg)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data$Discharge
+y = data$Erosion
+n = length(x = x)
+
+mat = matrix(data = 0, nrow = n - 1, ncol = n - 1)
+colnames(x = mat) = 1:(n - 1)
+rownames(x = mat) = 2:n
+
+# calculate for each yi, count the number of yj > yi (Nc: Concordant Pairs ) and 
+# the number of yj < yi (Nd: Discordant Pairs)
+for (i in 1:(n - 1)) {
+  for (j in (i + 1):n) {
+    val = (y[j] - y[i]) * (x[j] - x[i])
+    if (val > 0) {
+      mat[j - 1, i] = 1
+    } else {
+      mat[j - 1, i] = -1
+    }
+  }
+}
+
+# total number of concordant pairs (Nc) - Total number of discordant pairs (Nd)
+K = sum(mat)
+
+# kendall correlation distance
+tau = K / (n * (n - 1) / 2)
+
+# a z-score for rho which approximately follows a standard normal distribution
+# under the null hypothesis.
+Z = K / (sqrt((n * (n - 1) * (2 * n + 5)) / 18))
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qnorm(p = (1 - alpha), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - alpha), lower.tail = TRUE)
+} else {
+  lower.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = FALSE)
+  upper.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = TRUE)
+}
+
+p_value = pnorm(q = Z, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Nc - Nd: ", K, "\n")
+cat("tau: ", tau, "\n")
+cat("z-score: ", Z, "\n")
+cat("Critical Values: ", c(lower.critical, upper.critical), "\n")
+cat("P-value: ", p_value, "\n")
+
+plotDistStat(distribution = "norm", statistic = Z, alpha = 0.05,
+             alternative = "two.sided")
+
+
+# method 2
+# use "cor.test" function from "stats" package 
+stats::cor.test(x = data$Discharge, y = data$Erosion, method = "kendall",
+                alternative = "two.sided", conf.level = 0.95)
+```
