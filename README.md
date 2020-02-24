@@ -34,7 +34,7 @@ This book explains the purpose of some of the most commonly used statistical tes
 - [x] Test 28
 - [x] Test 29
 - [x] Test 30
-- [ ] Tables
+- [x] Tables
 - [ ] Base R
 - [ ] Reference
 - [ ] Index
