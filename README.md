@@ -2,7 +2,7 @@
 This book explains the purpose of some of the most commonly used statistical tests and how to implement them in R.
 
 ## TODO
-- Book Cover
+- [x] Book Cover
 - [x] Table of Content
 - [x] Test 01
 - [x] Test 02
@@ -38,4 +38,4 @@ This book explains the purpose of some of the most commonly used statistical tes
 - [x] Tables
 - [x] Dictionary
 - [x] Index
-- [ ] Reference
+- [x] Reference
